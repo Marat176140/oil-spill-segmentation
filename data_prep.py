@@ -53,9 +53,12 @@ class OilSpillDataset(Dataset):
                 break
                 
         if mask_path is None:
-            mask = np.zeros((256, 256), dtype=np.uint8)
+            mask = np.zeros((256, 256), dtype=np.float32)
         else:
             mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+            mask = mask / 255.0               
+            mask = mask.astype(np.float32)   
+
 
         image = cv2.imread(img_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
