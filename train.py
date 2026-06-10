@@ -11,7 +11,7 @@ from model_Unet import UNet
 
 # Configuration
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-EPOCHS = 50
+EPOCHS = 5
 BATCH_SIZE = 8
 LEARNING_RATE = 1e-4
 CHECKPOINT_DIR = "checkpoints"
@@ -133,7 +133,22 @@ def train_model(num_epochs=EPOCHS, resume_from=None):
     
     # Optimizer and loss function
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    loss_fn = nn.BCEWithLogitsLoss()  # for binary segmentation
+    
+    class DiceLoss(nn.Module):
+        def __init__(self, smooth=1e-6):
+            super().__init__()
+            self.smooth = smooth
+        def forward(self, preds, targets):
+            preds = torch.sigmoid(preds)
+            preds = preds.view(-1)
+            targets = targets.view(-1)
+            intersection = (preds * targets).sum()
+            return 1 - (2. * intersection + self.smooth) / (preds.sum() + targets.sum() + self.smooth)
+
+    bce_fn = nn.BCEWithLogitsLoss()
+    dice_fn = DiceLoss()
+    loss_fn = lambda outputs, targets: bce_fn(outputs, targets) + dice_fn(outputs, targets)
+    
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.1, patience=5
     )
